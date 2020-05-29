@@ -82,7 +82,7 @@ class Decoder(nn.Module):
 
         embedded = self.dropout(self.embedding(input))
 
-        output, hidden = self.gru(embedded, hidden)
+        output, hidden = self.lstm(embedded, hidden)
 
         soft_max_attention = nn.functional.softmax(torch.bmm(
             output.transpose(0, 1),
@@ -104,6 +104,16 @@ class Seq2Seq(nn.Module):
         self.decoder = decoder
         self.device = device
 
+        self.linear_lt = nn.Linear(
+            in_features=self.encoder.hid_dim * 2,
+            out_features=self.encoder.hid_dim,
+        )
+
+        self.linear_st = nn.Linear(
+            in_features=self.encoder.hid_dim * 2,
+            out_features=self.encoder.hid_dim,
+        )
+
         assert encoder.hid_dim == decoder.hid_dim, \
             "Hidden dimensions of encoder and decoder must be equal!"
         assert encoder.n_layers == decoder.n_layers, \
@@ -114,13 +124,17 @@ class Seq2Seq(nn.Module):
         max_len = trg.shape[0]
         trg_vocab_size = self.decoder.output_dim
 
-        # tensor to store decoder outputs
         outputs = torch.zeros(max_len, batch_size, trg_vocab_size).to(self.device)
-
-        # last hidden state of the encoder is used as the initial hidden state of the decoder
         encoder_output, hidden = self.encoder(src)
 
-        # first input to the decoder is the <sos> tokens
+        h1 = hidden[0].view(self.encoder.n_layers, src.shape[1], self.encoder.hid_dim * 2)
+        h2 = hidden[1].view(self.encoder.n_layers, src.shape[1], self.encoder.hid_dim * 2)
+
+        h1 = self.linear_lt(h1).contiguous()
+        h2 = self.linear_st(h2).contiguous()
+
+        hidden = (h1, h2)
+
         input = trg[0, :]
 
         for t in range(1, max_len):
