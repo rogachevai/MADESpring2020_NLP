@@ -38,7 +38,7 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, src):
-        embedded = self.embedding(src)  
+        embedded = self.embedding(src)  # <YOUR CODE HERE>
 
         embedded = self.dropout(embedded)
 
@@ -77,7 +77,7 @@ class Decoder(nn.Module):
             in_features=hid_dim * 2,
             out_features=output_dim
         )
-        self.dropout = nn.Dropout(p=dropout)  
+        self.dropout = nn.Dropout(p=dropout)  # <YOUR CODE HERE>
 
     def forward(self, input, hidden, encoder_output):
         input = input.unsqueeze(0)
@@ -89,7 +89,7 @@ class Decoder(nn.Module):
         attention_output = (self.attn(output.transpose(0, 1),
                                       encoder_output.transpose(0, 1))[0]).transpose(0, 1)
 
-       
+
         preds = self.out(torch.cat([attention_output.squeeze(0),
                                     output.squeeze(0)], dim=1))
 
